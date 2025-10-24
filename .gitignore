@@ -1,0 +1,11 @@
+# Ignore Streamlit config and secrets
+.streamlit/
+
+# Ignore JSON files (if you truly want to ignore all of them)
+*.json
+
+# Ignore environment files
+.env
+
+# Ignore Python virtual environment
+venv/
