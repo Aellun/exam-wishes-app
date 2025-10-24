@@ -35,7 +35,7 @@ except ImportError:
 # ---------- CONFIG & THEME ----------
 DATA_FILE = Path("messages.json")
 APP_TITLE = "🎓 Good Luck Board"
-APP_SUBTITLE = "Send warm exam wishes — make someone's day! ✨"
+APP_SUBTITLE = "Send warm exam wishes! ✨"
 ADMIN_SECRET_KEY_NAME = "ADMIN_KEY"
 
 # Google Sheets configuration
@@ -75,13 +75,11 @@ EMOJI_CATEGORIES = {
 def init_google_sheets():
     """Initialize Google Sheets connection using Streamlit secrets"""
     if not GOOGLE_SHEETS_AVAILABLE:
-        st.sidebar.warning("📁 Google Sheets dependencies not installed. Using local JSON storage.")
         return None
     
     try:
         # Check if secrets are configured
         if 'GOOGLE_CREDENTIALS' not in st.secrets:
-            st.sidebar.info("🔑 Google Sheets credentials not found in secrets. Using local JSON storage.")
             return None
         
         # Get credentials from secrets
@@ -92,7 +90,6 @@ def init_google_sheets():
         missing_fields = [field for field in required_fields if field not in credentials_dict or not credentials_dict[field]]
         
         if missing_fields:
-            st.sidebar.error(f"❌ Missing required Google credentials: {', '.join(missing_fields)}")
             return None
         
         # Use the correct scope for Google Sheets API
@@ -104,31 +101,21 @@ def init_google_sheets():
         try:
             creds = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
             client = gspread.authorize(creds)
-        except GoogleAuthError as e:
-            st.sidebar.error(f"🔐 Google authentication failed: {str(e)}")
-            return None
-        except Exception as e:
-            st.sidebar.error(f"🔐 Authorization failed: {str(e)}")
+        except (GoogleAuthError, Exception):
             return None
         
         # Try to open existing sheet or create new one
         try:
             sheet = client.open(GOOGLE_SHEET_NAME)
-            st.sidebar.success(f"✅ Connected to Google Sheet: {GOOGLE_SHEET_NAME}")
         except gspread.SpreadsheetNotFound:
             try:
                 # Try to create the sheet if it doesn't exist
-                st.sidebar.info(f"📄 Creating new Google Sheet: {GOOGLE_SHEET_NAME}")
                 sheet = client.create(GOOGLE_SHEET_NAME)
                 # Make it accessible to anyone with the link (optional)
                 sheet.share(None, perm_type='anyone', role='writer')
-                st.sidebar.success(f"✅ Created new Google Sheet: {GOOGLE_SHEET_NAME}")
-            except Exception as e:
-                st.sidebar.error(f"❌ Could not create Google Sheet: {str(e)}")
+            except Exception:
                 return None
-        except Exception as e:
-            st.sidebar.error(f"❌ Error accessing Google Sheet: {str(e)}")
-            st.sidebar.info("💡 Make sure your service account has editor access to the sheet.")
+        except Exception:
             return None
         
         # Get the first worksheet
@@ -138,14 +125,12 @@ def init_google_sheets():
         try:
             if not worksheet.get_all_values():
                 worksheet.append_row(["ID", "Name", "Recipient", "Message", "Tone", "Timestamp"])
-        except Exception as e:
-            st.sidebar.error(f"❌ Error setting up worksheet: {str(e)}")
+        except Exception:
             return None
         
         return worksheet
         
-    except Exception as e:
-        st.sidebar.error(f"❌ Google Sheets initialization failed: {str(e)}")
+    except Exception:
         return None
 
 def read_messages():
@@ -168,8 +153,8 @@ def read_messages():
                         "timestamp": record.get("Timestamp", "")
                     })
             return messages
-        except Exception as e:
-            st.sidebar.error(f"📖 Error reading from Google Sheets: {e}. Falling back to local storage.")
+        except Exception:
+            pass
     
     # Fall back to local JSON
     if not DATA_FILE.exists():
@@ -177,8 +162,7 @@ def read_messages():
     try:
         with DATA_FILE.open("r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception as e:
-        st.error(f"❌ Error reading local file: {e}")
+    except Exception:
         return []
 
 def write_messages(messages):
@@ -202,15 +186,15 @@ def write_messages(messages):
                     msg.get("timestamp", "")
                 ])
             return
-        except Exception as e:
-            st.sidebar.error(f"📝 Error writing to Google Sheets: {e}. Falling back to local storage.")
+        except Exception:
+            pass
     
     # Fall back to local JSON
     try:
         with DATA_FILE.open("w", encoding="utf-8") as f:
             json.dump(messages, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        st.error(f"❌ Error writing to local file: {e}")
+    except Exception:
+        pass
 
 def append_message(entry):
     """Append a single message to storage"""
@@ -530,14 +514,15 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Storage indicator
-storage_type = "Google Sheets" if st.session_state.google_worksheet else "Local JSON"
-status_color = COLORS["success"] if st.session_state.google_worksheet else COLORS["warning"]
-status_icon = "✅" if st.session_state.google_worksheet else "📁"
+# Simple status indicator for regular users
+storage_connected = st.session_state.google_worksheet is not None
+status_color = COLORS["success"] if storage_connected else COLORS["warning"]
+status_icon = "✅" if storage_connected else "🔄"
+status_text = "Storage Connected" if storage_connected else "Processing..."
 
 st.sidebar.markdown(f"""
 <div style="background: {status_color}15; padding: 8px 12px; border-radius: 8px; border: 1px solid {status_color}30; margin-bottom: 1rem;">
-    <small style="color: {status_color}; font-weight: 600;">{status_icon} Storage: {storage_type}</small>
+    <small style="color: {status_color}; font-weight: 600;">{status_icon} {status_text}</small>
 </div>
 """, unsafe_allow_html=True)
 
@@ -639,6 +624,27 @@ with st.sidebar:
         else:
             st.success("✅ Admin Authenticated")
             
+            # Storage details for admin
+            storage_type = "Google Sheets" if st.session_state.google_worksheet else "Local JSON"
+            storage_status = "Connected" if st.session_state.google_worksheet else "Local Storage"
+            storage_color = COLORS["success"] if st.session_state.google_worksheet else COLORS["warning"]
+            
+            st.markdown(f"""
+            <div style="background: {COLORS['background']}; padding: 1rem; border-radius: 8px; border: 1px solid {COLORS['border']}; margin-bottom: 1rem;">
+                <h4 style="margin: 0 0 0.5rem 0; color: {COLORS['text_primary']};">💾 Storage Details</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: {COLORS['text_secondary']};">Type</div>
+                        <div style="font-size: 1rem; font-weight: bold; color: {storage_color};">{storage_type}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: {COLORS['text_secondary']};">Status</div>
+                        <div style="font-size: 1rem; font-weight: bold; color: {storage_color};">{storage_status}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             # Admin statistics
             messages = read_messages()
             total_messages = len(messages)
@@ -659,6 +665,33 @@ with st.sidebar:
                 </div>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Export section for admin only
+            if messages:
+                st.markdown("### 📤 Export Messages")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # JSON export
+                    json_bytes = json.dumps(messages, ensure_ascii=False, indent=2).encode("utf-8")
+                    st.download_button(
+                        "📊 Download JSON",
+                        data=json_bytes,
+                        file_name="good_luck_messages.json",
+                        mime="application/json",
+                        use_container_width=True
+                    )
+                
+                with col2:
+                    # PDF export
+                    pdf_buf = generate_pdf_buffer(messages)
+                    st.download_button(
+                        "📄 Download PDF Report",
+                        data=pdf_buf,
+                        file_name="good_luck_messages.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
             
             # Admin actions
             col1, col2 = st.columns(2)
@@ -842,40 +875,12 @@ with tab_view:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-        
-        # Export section
-        if filtered:
-            st.markdown("---")
-            st.markdown("### 📤 Export Messages")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # JSON export
-                json_bytes = json.dumps(filtered, ensure_ascii=False, indent=2).encode("utf-8")
-                st.download_button(
-                    "📊 Download JSON",
-                    data=json_bytes,
-                    file_name="good_luck_messages.json",
-                    mime="application/json",
-                    use_container_width=True
-                )
-            
-            with col2:
-                # PDF export
-                pdf_buf = generate_pdf_buffer(filtered)
-                st.download_button(
-                    "📄 Download PDF Report",
-                    data=pdf_buf,
-                    file_name="good_luck_messages.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
 
 # Footer
 st.markdown("---")
 st.markdown(f"""
 <div style="text-align: center; color: {COLORS['text_secondary']}; padding: 2rem 0;">
     <p>Made with ❤️ for spreading positivity during exams</p>
-    <p style="font-size: 0.9rem;">💾 Storage: {storage_type} | 📧 Messages: {len(read_messages())}</p>
+    <p style="font-size: 0.9rem;">📧 Messages: {len(read_messages())}</p>
 </div>
 """, unsafe_allow_html=True)
