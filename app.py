@@ -34,8 +34,6 @@ except ImportError:
 
 # ---------- CONFIG & THEME ----------
 DATA_FILE = Path("messages.json")
-APP_TITLE = "🎓 Good Luck Board"
-APP_SUBTITLE = "Send warm exam wishes! ✨"
 ADMIN_SECRET_KEY_NAME = "ADMIN_KEY"
 
 # Google Sheets configuration
@@ -70,6 +68,76 @@ EMOJI_CATEGORIES = {
     "💝 Support": ["❤️", "🤍", "💙", "🙌", "👏", "🤞", "🍀", "☘️", "🌈", "🌿"],
     "😊 Emotions": ["😊", "😄", "🤩", "🥰", "😎", "🤗", "🎊", "🎈", "💫", "⚡"]
 }
+
+# ---------- DYNAMIC CONFIGURATION ----------
+def get_recipient_names():
+    """Get recipient names from secrets.toml"""
+    if 'RECIPIENTS' in st.secrets:
+        recipients = st.secrets['RECIPIENTS']
+        if isinstance(recipients, list):
+            return recipients
+        elif isinstance(recipients, str):
+            # Handle comma-separated string
+            return [name.strip() for name in recipients.split(',') if name.strip()]
+    return []
+
+def get_app_title():
+    """Generate dynamic app title based on recipients"""
+    recipients = get_recipient_names()
+    
+    if not recipients:
+        return " Good Luck Board"
+    elif len(recipients) == 1:
+        return f" Good Luck {recipients[0]}!"
+    elif len(recipients) == 2:
+        return f" Good Luck {recipients[0]} & {recipients[1]}!"
+    else:
+        names = ", ".join(recipients[:-1]) + f" & {recipients[-1]}"
+        return f" Good Luck {names}!"
+
+def get_app_subtitle():
+    """Generate dynamic subtitle based on recipients"""
+    recipients = get_recipient_names()
+    
+    if not recipients:
+        return "Send warm exam wishes! ✨"
+    elif len(recipients) == 1:
+        return f"Send warm wishes to {recipients[0]} for their exams! ✨"
+    elif len(recipients) == 2:
+        return f"Send warm wishes to {recipients[0]} & {recipients[1]} for their exams! ✨"
+    else:
+        names = ", ".join(recipients[:-1]) + f" & {recipients[-1]}"
+        return f"Send warm wishes to {names} for their exams! ✨"
+
+def get_recipient_display_text():
+    """Generate display text for the featured recipients section"""
+    recipients = get_recipient_names()
+    
+    if not recipients:
+        return " Wishing Best of Luck To All Exam Takers!"
+    elif len(recipients) == 1:
+        return f" Wishing Best of Luck To:"
+    elif len(recipients) == 2:
+        return f" Wishing Best of Luck To:"
+    else:
+        return f"s Wishing Best of Luck To:"
+
+def get_recipient_string():
+    """Get the recipient string for message storage"""
+    recipients = get_recipient_names()
+    
+    if not recipients:
+        return "Everyone"
+    elif len(recipients) == 1:
+        return recipients[0]
+    elif len(recipients) == 2:
+        return f"{recipients[0]} & {recipients[1]}"
+    else:
+        return ", ".join(recipients[:-1]) + f" & {recipients[-1]}"
+
+# Initialize dynamic titles
+APP_TITLE = get_app_title()
+APP_SUBTITLE = get_app_subtitle()
 
 # ---------- STORAGE UTILITIES ----------
 def init_google_sheets():
@@ -501,18 +569,28 @@ with col2:
     """, unsafe_allow_html=True)
 
 # Featured recipients section
-st.markdown(f"""
-<div style="text-align: center; background: {COLORS['primary']}10; padding: 1.5rem; border-radius: 16px; margin: 1rem 0; border: 2px solid {COLORS['primary']}20;">
-    <h3 style="color: {COLORS['primary']}; margin-bottom: 1rem;">🎯 Wishing Best of Luck To:</h3>
-    <div style="display: flex; justify-content: center; gap: 3rem; font-size: 1.3rem; font-weight: bold;">
-        <div style="color: {COLORS['primary']};">🎓 Chelsea</div>
-        <div style="color: {COLORS['secondary']};">📚 Nagel</div>
+recipients = get_recipient_names()
+if recipients:
+    st.markdown(f"""
+    <div style="text-align: center; background: {COLORS['primary']}10; padding: 1.5rem; border-radius: 16px; margin: 1rem 0; border: 2px solid {COLORS['primary']}20;">
+        <h3 style="color: {COLORS['primary']}; margin-bottom: 1rem;">{get_recipient_display_text()}</h3>
+        <div style="display: flex; justify-content: center; gap: 2rem; font-size: 1.3rem; font-weight: bold; flex-wrap: wrap;">
+    """, unsafe_allow_html=True)
+    
+    # Display recipient names with icons
+    icons = ["🎓", "🎓", "🌟", "💫", "⭐", "🔥","🏆"]
+    for i, recipient in enumerate(recipients):
+        icon = icons[i % len(icons)]
+        color = COLORS["primary"] if i % 2 == 0 else COLORS["secondary"]
+        st.markdown(f'<div style="color: {color}; margin: 0 1rem;">{icon} {recipient}</div>', unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        </div>
+        <p style="color: {COLORS['text_secondary']}; margin-top: 1rem; font-size: 1rem;">
+            Send your warm wishes and encouragement to help them succeed!
+        </p>
     </div>
-    <p style="color: {COLORS['text_secondary']}; margin-top: 1rem; font-size: 1rem;">
-        Send your warm wishes and encouragement to help them succeed in their exams!
-    </p>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # Simple status indicator for regular users
 storage_connected = st.session_state.google_worksheet is not None
@@ -623,6 +701,17 @@ with st.sidebar:
                     st.error("❌ Invalid admin password")
         else:
             st.success("✅ Admin Authenticated")
+            
+            # Current configuration
+            current_recipients = get_recipient_names()
+            st.markdown(f"""
+            <div style="background: {COLORS['background']}; padding: 1rem; border-radius: 8px; border: 1px solid {COLORS['border']}; margin-bottom: 1rem;">
+                <h4 style="margin: 0 0 0.5rem 0; color: {COLORS['text_primary']};">⚙️ Current Configuration</h4>
+                <div style="font-size: 0.9rem; color: {COLORS['text_secondary']};">
+                    <strong>Recipients:</strong> {', '.join(current_recipients) if current_recipients else 'None configured'}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Storage details for admin
             storage_type = "Google Sheets" if st.session_state.google_worksheet else "Local JSON"
@@ -774,7 +863,7 @@ with tab_send:
             
             # Submit button
             submitted = st.form_submit_button(
-                "🚀 Send Your Wish",
+                " Send Your Wish",
                 use_container_width=True
             )
             
@@ -791,7 +880,7 @@ with tab_send:
                     entry = {
                         "id": str(uuid.uuid4()),
                         "name": (name.strip() or "Anonymous"),
-                        "recipient": "Chelsea & Nagel",  # Fixed recipient
+                        "recipient": get_recipient_string(),
                         "message": final_message,
                         "tone": tone,
                         "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
