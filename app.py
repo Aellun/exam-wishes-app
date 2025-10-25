@@ -363,7 +363,7 @@ def generate_pdf_buffer(messages, title="Good Luck Board Messages"):
 
 # ---------- UI UTILITIES ----------
 def apply_custom_styles():
-    """Apply custom CSS for modern styling"""
+    """Apply custom CSS for modern styling and mobile responsiveness"""
     st.markdown(f"""
     <style>
     /* Main background */
@@ -409,16 +409,32 @@ def apply_custom_styles():
         box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
     }}
     
-    /* Sidebar - Increased width */
-    section[data-testid="stSidebar"] {{
-        width: 380px !important;
-        min-width: 380px !important;
+    /* Responsive sidebar */
+    @media (max-width: 768px) {{
+        section[data-testid="stSidebar"] {{
+            width: 100% !important;
+            min-width: 100% !important;
+        }}
+        
+        .css-1d391kg {{
+            padding: 1rem !important;
+        }}
+    }}
+    
+    @media (min-width: 769px) {{
+        section[data-testid="stSidebar"] {{
+            width: 380px !important;
+            min-width: 380px !important;
+        }}
+        
+        .css-1d391kg {{
+            padding: 2rem 1.5rem !important;
+        }}
     }}
     
     .css-1d391kg {{
         background: {COLORS['card_bg']};
         border-right: 1px solid {COLORS['border']};
-        padding: 2rem 1.5rem;
     }}
     
     /* Tabs */
@@ -511,12 +527,62 @@ def apply_custom_styles():
         display: flex;
         gap: 4px;
         margin-bottom: 10px;
+        flex-wrap: wrap;
     }}
     
     .category-btn {{
         flex: 1;
         font-size: 0.8em !important;
         padding: 6px 8px !important;
+        min-width: 80px;
+    }}
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {{
+        .mobile-stack {{
+            flex-direction: column !important;
+        }}
+        
+        .mobile-full-width {{
+            width: 100% !important;
+        }}
+        
+        .mobile-center {{
+            text-align: center !important;
+        }}
+        
+        .mobile-padding {{
+            padding: 1rem !important;
+        }}
+        
+        .mobile-margin {{
+            margin: 0.5rem 0 !important;
+        }}
+        
+        h1 {{
+            font-size: 2rem !important;
+        }}
+        
+        h2 {{
+            font-size: 1.5rem !important;
+        }}
+        
+        .message-card {{
+            padding: 16px !important;
+            margin: 8px 0 !important;
+        }}
+    }}
+    
+    /* Recipients section for mobile */
+    @media (max-width: 768px) {{
+        .recipients-container {{
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+        }}
+        
+        .recipient-item {{
+            margin: 0.25rem 0 !important;
+        }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -557,24 +623,24 @@ if "active_emoji_category" not in st.session_state:
     st.session_state.active_emoji_category = "🌟 Popular"
 if "admin_authenticated" not in st.session_state:
     st.session_state.admin_authenticated = False
+if "current_tab" not in st.session_state:
+    st.session_state.current_tab = "✍️ Compose Message"
 
-# Header with modern design and featured recipients
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.markdown(f"""
-    <div style="text-align: center; padding: 1rem 0;">
-        <h1 style="font-size: 3rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, {COLORS['primary']}, {COLORS['secondary']}); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{APP_TITLE}</h1>
-        <p style="font-size: 1.2rem; color: {COLORS['text_secondary']}; margin-top: 0;">{APP_SUBTITLE}</p>
-    </div>
-    """, unsafe_allow_html=True)
+# Mobile-friendly header with responsive layout
+st.markdown(f"""
+<div class="mobile-center mobile-padding">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, {COLORS['primary']}, {COLORS['secondary']}); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{APP_TITLE}</h1>
+    <p style="font-size: 1.2rem; color: {COLORS['text_secondary']}; margin-top: 0;">{APP_SUBTITLE}</p>
+</div>
+""", unsafe_allow_html=True)
 
-# Featured recipients section
+# Featured recipients section with mobile responsiveness
 recipients = get_recipient_names()
 if recipients:
     st.markdown(f"""
     <div style="text-align: center; background: {COLORS['primary']}10; padding: 1.5rem; border-radius: 16px; margin: 1rem 0; border: 2px solid {COLORS['primary']}20;">
         <h3 style="color: {COLORS['primary']}; margin-bottom: 1rem;">{get_recipient_display_text()}</h3>
-        <div style="display: flex; justify-content: center; gap: 2rem; font-size: 1.3rem; font-weight: bold; flex-wrap: wrap;">
+        <div class="recipients-container" style="display: flex; justify-content: center; gap: 2rem; font-size: 1.3rem; font-weight: bold; flex-wrap: wrap;">
     """, unsafe_allow_html=True)
     
     # Display recipient names with icons
@@ -582,7 +648,7 @@ if recipients:
     for i, recipient in enumerate(recipients):
         icon = icons[i % len(icons)]
         color = COLORS["primary"] if i % 2 == 0 else COLORS["secondary"]
-        st.markdown(f'<div style="color: {color}; margin: 0 1rem;">{icon} {recipient}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="recipient-item" style="color: {color}; margin: 0 1rem;">{icon} {recipient}</div>', unsafe_allow_html=True)
     
     st.markdown(f"""
         </div>
@@ -604,13 +670,29 @@ st.sidebar.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Enhanced Sidebar with professional layout
+# Enhanced Sidebar with professional layout and mobile optimization
 with st.sidebar:
     st.markdown(f"""
     <div style="padding: 1rem 0; text-align: center;">
         <h2 style="color: {COLORS['text_primary']}; margin-bottom: 0;">✨ Quick Tools</h2>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Quick navigation buttons for mobile
+    st.markdown("### 🧭 Navigation")
+    nav_col1, nav_col2 = st.columns(2)
+    with nav_col1:
+        if st.button("✍️ Compose", use_container_width=True, 
+                    type="primary" if st.session_state.current_tab == "✍️ Compose Message" else "secondary"):
+            st.session_state.current_tab = "✍️ Compose Message"
+            st.rerun()
+    with nav_col2:
+        if st.button("📜 View Messages", use_container_width=True,
+                    type="primary" if st.session_state.current_tab == "📜 View Messages" else "secondary"):
+            st.session_state.current_tab = "📜 View Messages"
+            st.rerun()
+    
+    st.markdown("---")
     
     # Templates section
     with st.expander("🎨 Message Templates", expanded=True):
@@ -622,6 +704,7 @@ with st.sidebar:
                 use_container_width=True
             ):
                 st.session_state.form["message"] = template["text"]
+                st.session_state.current_tab = "✍️ Compose Message"
                 st.rerun()
     
     st.markdown("---")
@@ -632,28 +715,32 @@ with st.sidebar:
         categories = list(EMOJI_CATEGORIES.keys())
         st.markdown("**Categories:**")
         
-        # Create horizontal layout for categories
-        cat_cols = st.columns(len(categories))
+        # Create responsive layout for categories
+        st.markdown('<div class="category-row">', unsafe_allow_html=True)
         for i, category in enumerate(categories):
             is_active = st.session_state.active_emoji_category == category
-            if cat_cols[i].button(
+            if st.button(
                 category, 
                 key=f"cat_{i}", 
-                use_container_width=True,
+                use_container_width=False,
                 type="primary" if is_active else "secondary"
             ):
                 st.session_state.active_emoji_category = category
                 st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown("---")
         
         # Emoji grid with better spacing
         emojis = EMOJI_CATEGORIES[st.session_state.active_emoji_category]
         st.markdown(f"**{st.session_state.active_emoji_category}**")
-        cols = st.columns(5)
+        
+        # Responsive emoji grid
+        cols_per_row = 5
+        emoji_cols = st.columns(cols_per_row)
         for i, emj in enumerate(emojis):
-            col = cols[i % 5]
-            if col.button(emj, key=f"emoji_{i}_{emj}", use_container_width=True):
+            col_idx = i % cols_per_row
+            if emoji_cols[col_idx].button(emj, key=f"emoji_{i}_{emj}", use_container_width=True):
                 st.session_state.emoji_buffer.append(emj)
                 st.rerun()
         
@@ -678,6 +765,7 @@ with st.sidebar:
                 if "message" in st.session_state.form:
                     st.session_state.form["message"] += " " + " ".join(st.session_state.emoji_buffer)
                 st.session_state.emoji_buffer = []
+                st.session_state.current_tab = "✍️ Compose Message"
                 st.rerun()
             if col2.button("Clear Emojis", use_container_width=True):
                 st.session_state.emoji_buffer = []
@@ -824,89 +912,98 @@ with st.sidebar:
                                 st.success("Message deleted!")
                                 st.rerun()
 
-# Main content area
-tab_send, tab_view = st.tabs(["✍️ Compose Message", "📜 View Messages"])
-
-# Send Message Tab
-with tab_send:
-    col1, col2 = st.columns([2, 1])
+# Main content area with tab navigation
+# Use session state to track current tab
+if st.session_state.current_tab == "✍️ Compose Message":
+    # Send Message Tab
+    st.markdown(f"""
+    <div style="background: {COLORS['card_bg']}; padding: 2rem; border-radius: 16px; border: 1px solid {COLORS['border']};" class="mobile-padding">
+        <h2 style="color: {COLORS['text_primary']}; margin-bottom: 1.5rem;">✨ Create Your Message</h2>
+    """, unsafe_allow_html=True)
     
-    with col1:
-        st.markdown(f"""
-        <div style="background: {COLORS['card_bg']}; padding: 2rem; border-radius: 16px; border: 1px solid {COLORS['border']};">
-            <h2 style="color: {COLORS['text_primary']}; margin-bottom: 1.5rem;">✨ Create Your Message</h2>
-        """, unsafe_allow_html=True)
+    with st.form("compose_form", clear_on_submit=True):
+        # Name input
+        name = st.text_input(
+            "**Your Name** ✏️",
+            placeholder="Enter your name (or stay anonymous)",
+            value=st.session_state.form["name"],
+            max_chars=50
+        )
         
-        with st.form("compose_form", clear_on_submit=True):
-            # Name input
-            name = st.text_input(
-                "**Your Name** ✏️",
-                placeholder="Enter your name (or stay anonymous)",
-                value=st.session_state.form["name"],
-                max_chars=50
-            )
-            
-            # Tone selection
-            tone = st.selectbox(
-                "**Message Tone** 🎭",
-                ["inspirational", "encouraging", "funny", "calm", "formal", "custom"],
-                index=["inspirational", "encouraging", "funny", "calm", "formal", "custom"].index(st.session_state.form.get("tone", "inspirational"))
-            )
-            
-            # Message area
-            message = st.text_area(
-                "**Your Message** 💫",
-                height=200,
-                placeholder="Write your encouraging message here... (Markdown supported)",
-                value=st.session_state.form.get("message", "")
-            )
-            
-            # Submit button
-            submitted = st.form_submit_button(
-                " Send Your Wish",
-                use_container_width=True
-            )
-            
-            if submitted:
-                if not message.strip():
-                    st.error("Please write a message before sending!")
-                else:
-                    final_message = message.strip()
-                    
-                    # Add emojis to the end of the message
-                    if st.session_state.emoji_buffer:
-                        final_message = final_message + " " + " ".join(st.session_state.emoji_buffer)
-                    
-                    entry = {
-                        "id": str(uuid.uuid4()),
-                        "name": (name.strip() or "Anonymous"),
-                        "recipient": get_recipient_string(),
-                        "message": final_message,
-                        "tone": tone,
-                        "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-                    }
-                    
-                    append_message(entry)
-                    st.session_state.emoji_buffer = []
-                    st.session_state.form = {"name": "", "message": "", "tone": "inspirational"}
-                    st.success("🎉 Your message was sent successfully!")
-                    st.balloons()
+        # Tone selection
+        tone = st.selectbox(
+            "**Message Tone** 🎭",
+            ["inspirational", "encouraging", "funny", "calm", "formal", "custom"],
+            index=["inspirational", "encouraging", "funny", "calm", "formal", "custom"].index(st.session_state.form.get("tone", "inspirational"))
+        )
+        
+        # Message area
+        message = st.text_area(
+            "**Your Message** 💫",
+            height=200,
+            placeholder="Write your encouraging message here... (Markdown supported)",
+            value=st.session_state.form.get("message", "")
+        )
+        
+        # Submit button
+        submitted = st.form_submit_button(
+            " Send Your Wish",
+            use_container_width=True
+        )
+        
+        if submitted:
+            if not message.strip():
+                st.error("Please write a message before sending!")
+            else:
+                final_message = message.strip()
+                
+                # Add emojis to the end of the message
+                if st.session_state.emoji_buffer:
+                    final_message = final_message + " " + " ".join(st.session_state.emoji_buffer)
+                
+                entry = {
+                    "id": str(uuid.uuid4()),
+                    "name": (name.strip() or "Anonymous"),
+                    "recipient": get_recipient_string(),
+                    "message": final_message,
+                    "tone": tone,
+                    "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                }
+                
+                append_message(entry)
+                st.session_state.emoji_buffer = []
+                st.session_state.form = {"name": "", "message": "", "tone": "inspirational"}
+                st.success("🎉 Your message was sent successfully!")
+                st.balloons()
+                st.session_state.current_tab = "📜 View Messages"
+                st.rerun()
 
-# View Messages Tab
-with tab_view:
+else:
+    # View Messages Tab
     messages = read_messages()
     
     if not messages:
         st.markdown(f"""
-        <div style="text-align: center; padding: 4rem 2rem; background: {COLORS['card_bg']}; border-radius: 16px; border: 1px solid {COLORS['border']};">
+        <div style="text-align: center; padding: 4rem 2rem; background: {COLORS['card_bg']}; border-radius: 16px; border: 1px solid {COLORS['border']};" class="mobile-padding">
             <h3 style="color: {COLORS['text_secondary']}; margin-bottom: 1rem;">📝 No Messages Yet</h3>
             <p style="color: {COLORS['text_secondary']}; font-size: 1.1rem;">Be the first to send some encouragement! 💫</p>
+            <div style="margin-top: 2rem;">
+                <button onclick="window.location.reload()" style="
+                    background: {COLORS['primary']}; 
+                    color: white; 
+                    border: none; 
+                    padding: 12px 24px; 
+                    border-radius: 12px; 
+                    font-weight: 600;
+                    cursor: pointer;
+                ">Send First Message</button>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     else:
-        # Filters
-        col1, col2 = st.columns(2)
-        with col1:
+        # Filters with mobile optimization
+        filter_col1, filter_col2 = st.columns([1, 1])
+        with filter_col1:
             senders = sorted({m.get("name", "Anonymous") for m in messages})
             sender_filter = st.selectbox("Filter by sender", ["All"] + senders)
         
@@ -915,15 +1012,15 @@ with tab_view:
         if sender_filter != "All":
             filtered = [m for m in filtered if m.get("name") == sender_filter]
         
-        # Statistics
+        # Statistics with mobile layout
         st.markdown(f"""
         <div style="background: {COLORS['card_bg']}; padding: 1rem; border-radius: 12px; margin: 1rem 0; border: 1px solid {COLORS['border']};">
-            <div style="display: flex; justify-content: space-around; text-align: center;">
-                <div>
+            <div style="display: flex; justify-content: space-around; text-align: center;" class="mobile-stack">
+                <div class="mobile-margin">
                     <div style="font-size: 0.9rem; color: {COLORS['text_secondary']};">Total Messages</div>
                     <div style="font-size: 1.5rem; font-weight: bold; color: {COLORS['primary']};">{len(filtered)}</div>
                 </div>
-                <div>
+                <div class="mobile-margin">
                     <div style="font-size: 0.9rem; color: {COLORS['text_secondary']};">Unique Senders</div>
                     <div style="font-size: 1.5rem; font-weight: bold; color: {COLORS['secondary']};">{len({m.get('name', 'Anonymous') for m in filtered})}</div>
                 </div>
@@ -931,7 +1028,7 @@ with tab_view:
         </div>
         """, unsafe_allow_html=True)
         
-        # Message cards
+        # Message cards with mobile optimization
         for m in reversed(filtered):
             name = m.get("name", "Anonymous")
             tone = m.get("tone", "")
@@ -940,15 +1037,15 @@ with tab_view:
             
             # Create beautiful card
             st.markdown(f"""
-            <div class="message-card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="message-card mobile-padding">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;" class="mobile-stack">
+                    <div class="mobile-full-width mobile-margin">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                             <h4 style="margin: 0; color: {COLORS['text_primary']};">{name}</h4>
                             {create_tone_badge(tone)}
                         </div>
                     </div>
-                    <div style="font-size: 0.8rem; color: {COLORS['text_secondary']};">{ts}</div>
+                    <div style="font-size: 0.8rem; color: {COLORS['text_secondary']};" class="mobile-full-width mobile-margin">{ts}</div>
                 </div>
                 <div style="
                     padding: 1.5rem;
@@ -959,7 +1056,7 @@ with tab_view:
                     line-height: 1.6;
                     color: {COLORS['text_primary']};
                     white-space: pre-wrap;
-                ">
+                " class="mobile-padding">
                     {msg_body}
                 </div>
             </div>
