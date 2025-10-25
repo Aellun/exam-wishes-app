@@ -410,12 +410,56 @@ def apply_custom_styles():
             padding-left: 1rem !important;
             padding-right: 1rem !important;
         }}
+        
+        /* Mobile menu toggle */
+        .mobile-menu-toggle {{
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 10000;
+            background: {COLORS['primary']};
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }}
+        
+        /* Close button for sidebar */
+        .sidebar-close {{
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: {COLORS['primary']};
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            z-index: 1000000;
+            cursor: pointer;
+        }}
     }}
     
     @media (min-width: 769px) {{
         section[data-testid="stSidebar"] {{
             width: 380px !important;
             min-width: 380px !important;
+        }}
+        
+        .mobile-menu-toggle {{
+            display: none !important;
+        }}
+        
+        .sidebar-close {{
+            display: none !important;
         }}
     }}
     
@@ -554,30 +598,42 @@ def apply_custom_styles():
         100% {{ box-shadow: 0 0 0 0 {COLORS['primary']}00; }}
     }}
     
-    /* Mobile menu toggle */
-    .mobile-menu-toggle {{
-        display: none;
+    /* Quick navigation buttons */
+    .quick-nav {{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }}
+    
+    .nav-btn {{
+        background: {COLORS['primary']};
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }}
+    
+    .nav-btn:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     }}
     
     @media (max-width: 768px) {{
-        .mobile-menu-toggle {{
-            display: block;
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 10000;
-            background: {COLORS['primary']};
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            cursor: pointer;
+        .quick-nav {{
+            bottom: 70px;
+            right: 15px;
         }}
     }}
     </style>
@@ -596,19 +652,22 @@ def create_tone_badge(tone):
     color = tone_colors.get(tone, COLORS["text_secondary"])
     return f'<span class="tone-badge" style="background: {color}15; color: {color}; border: 1px solid {color}30;">{tone}</span>'
 
-def add_safe_js():
-    """Add safe JavaScript without React conflicts"""
+def add_enhanced_navigation_js():
+    """Add enhanced JavaScript for navigation and auto-scrolling"""
     st.markdown("""
     <script>
-    // Safe JavaScript for navigation without React conflicts
-    function scrollToElement(elementId) {
+    // Enhanced navigation functions
+    function scrollToElement(elementId, highlight = true) {
         const element = document.getElementById(elementId);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.classList.add('highlight-field');
-            setTimeout(() => {
-                element.classList.remove('highlight-field');
-            }, 2000);
+            
+            if (highlight) {
+                element.classList.add('highlight-field');
+                setTimeout(() => {
+                    element.classList.remove('highlight-field');
+                }, 2000);
+            }
         }
     }
     
@@ -620,68 +679,97 @@ def add_safe_js():
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
     
-    // Initialize after page load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initNavigation);
-    } else {
-        initNavigation();
+    function closeMobileSidebar() {
+        // Find and click the sidebar close button
+        const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+        if (sidebar) {
+            const closeBtn = sidebar.querySelector('button[aria-label="Close"]');
+            if (closeBtn) {
+                closeBtn.click();
+            }
+        }
     }
     
-    function initNavigation() {
-        // Add IDs to key elements
-        const messageInputs = document.querySelectorAll('.stTextArea textarea');
-        if (messageInputs.length > 0) {
-            messageInputs[0].id = 'message-input';
+    function navigateToSection(section, scrollToField = null) {
+        // Close sidebar on mobile
+        if (window.innerWidth <= 768) {
+            setTimeout(closeMobileSidebar, 300);
         }
         
-        // Create navigation buttons
-        createNavButtons();
+        // Scroll to section after a short delay to allow page update
+        setTimeout(() => {
+            if (scrollToField) {
+                scrollToElement(scrollToField, true);
+            } else if (section === 'compose') {
+                scrollToElement('compose-section', false);
+            } else if (section === 'messages') {
+                scrollToElement('messages-section', false);
+            }
+        }, 500);
     }
     
+    // Initialize navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add IDs to key elements
+        setTimeout(() => {
+            const messageInputs = document.querySelectorAll('.stTextArea textarea');
+            if (messageInputs.length > 0 && !messageInputs[0].id) {
+                messageInputs[0].id = 'message-input';
+                messageInputs[0].classList.add('scroll-target');
+            }
+            
+            // Create navigation buttons
+            createNavButtons();
+            
+            // Add mobile menu functionality
+            setupMobileMenu();
+        }, 1000);
+    });
+    
     function createNavButtons() {
+        if (document.getElementById('quick-nav-buttons')) return;
+        
         const navContainer = document.createElement('div');
-        navContainer.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        `;
-        
+        navContainer.id = 'quick-nav-buttons';
+        navContainer.className = 'quick-nav';
         navContainer.innerHTML = `
-            <button onclick="scrollToTop()" style="
-                background: #6366F1;
-                color: white;
-                border: none;
-                border-radius: 50%;
-                width: 50px;
-                height: 50px;
-                font-size: 1.2rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                cursor: pointer;
-            ">↑</button>
-            <button onclick="scrollToBottom()" style="
-                background: #6366F1;
-                color: white;
-                border: none;
-                border-radius: 50%;
-                width: 50px;
-                height: 50px;
-                font-size: 1.2rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                cursor: pointer;
-            ">↓</button>
+            <button class="nav-btn" onclick="scrollToTop()" title="Scroll to Top">↑</button>
+            <button class="nav-btn" onclick="scrollToBottom()" title="Scroll to Bottom">↓</button>
         `;
-        
         document.body.appendChild(navContainer);
+    }
+    
+    function setupMobileMenu() {
+        // Add mobile menu toggle if it doesn't exist
+        if (!document.getElementById('mobile-menu-toggle')) {
+            const toggleBtn = document.createElement('button');
+            toggleBtn.id = 'mobile-menu-toggle';
+            toggleBtn.className = 'mobile-menu-toggle';
+            toggleBtn.innerHTML = '☰';
+            toggleBtn.onclick = function() {
+                const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+                if (sidebar) {
+                    const toggle = sidebar.querySelector('button[kind="header"]');
+                    if (toggle) toggle.click();
+                }
+            };
+            document.body.appendChild(toggleBtn);
+        }
+    }
+    
+    // Global function to handle template selection
+    window.handleTemplateSelect = function(templateText) {
+        navigateToSection('compose', 'message-input');
+    }
+    
+    // Global function to handle emoji selection
+    window.handleEmojiSelect = function() {
+        navigateToSection('compose', 'message-input');
+    }
+    
+    // Global function to handle navigation
+    window.handleNavigation = function(section) {
+        navigateToSection(section);
     }
     </script>
     """, unsafe_allow_html=True)
@@ -695,7 +783,7 @@ st.set_page_config(
 )
 
 apply_custom_styles()
-add_safe_js()
+add_enhanced_navigation_js()
 
 # Initialize Google Sheets connection
 if 'google_worksheet' not in st.session_state:
@@ -712,11 +800,8 @@ if "admin_authenticated" not in st.session_state:
     st.session_state.admin_authenticated = False
 if "current_tab" not in st.session_state:
     st.session_state.current_tab = "✍️ Compose Message"
-
-# Mobile menu toggle - using Streamlit button instead of custom HTML
-if st.sidebar.button("☰", key="mobile_menu_toggle", help="Toggle Menu"):
-    # This will trigger sidebar toggle in Streamlit
-    pass
+if "auto_scroll_to" not in st.session_state:
+    st.session_state.auto_scroll_to = None
 
 # Mobile-friendly header
 st.markdown(f"""
@@ -755,8 +840,13 @@ status_color = COLORS["success"] if storage_connected else COLORS["warning"]
 status_icon = "✅" if storage_connected else "🔄"
 status_text = "Storage Connected" if storage_connected else "Processing..."
 
-# Enhanced Sidebar
+# Enhanced Sidebar with auto-navigation
 with st.sidebar:
+    # Add close button for mobile
+    st.markdown("""
+    <button class="sidebar-close" onclick="closeMobileSidebar()">×</button>
+    """, unsafe_allow_html=True)
+    
     st.markdown(f"""
     <div style="background: {status_color}15; padding: 8px 12px; border-radius: 8px; border: 1px solid {status_color}30; margin-bottom: 1rem;">
         <small style="color: {status_color}; font-weight: 600;">{status_icon} {status_text}</small>
@@ -769,7 +859,7 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # Quick navigation
+    # Quick navigation with auto-scroll
     st.markdown("### 🧭 Navigation")
     nav_col1, nav_col2 = st.columns(2)
     with nav_col1:
@@ -777,17 +867,19 @@ with st.sidebar:
                     type="primary" if st.session_state.current_tab == "✍️ Compose Message" else "secondary",
                     key="nav_compose"):
             st.session_state.current_tab = "✍️ Compose Message"
+            st.session_state.auto_scroll_to = "compose-section"
             st.rerun()
     with nav_col2:
         if st.button("📜 View Messages", use_container_width=True,
                     type="primary" if st.session_state.current_tab == "📜 View Messages" else "secondary",
                     key="nav_view"):
             st.session_state.current_tab = "📜 View Messages"
+            st.session_state.auto_scroll_to = "messages-section"
             st.rerun()
     
     st.markdown("---")
     
-    # Templates section
+    # Templates section with auto-navigation
     with st.expander("🎨 Message Templates", expanded=True):
         st.markdown("**Choose a template to get started:**")
         for template in DEFAULT_TEMPLATES:
@@ -798,11 +890,12 @@ with st.sidebar:
             ):
                 st.session_state.form["message"] = template["text"]
                 st.session_state.current_tab = "✍️ Compose Message"
+                st.session_state.auto_scroll_to = "message-input"
                 st.rerun()
     
     st.markdown("---")
     
-    # Emoji picker
+    # Enhanced emoji picker with auto-navigation
     with st.expander("😊 Emoji Picker", expanded=True):
         categories = list(EMOJI_CATEGORIES.keys())
         st.markdown("**Categories:**")
@@ -822,7 +915,7 @@ with st.sidebar:
         
         st.markdown("---")
         
-        # Emoji grid
+        # Emoji grid with auto-navigation
         emojis = EMOJI_CATEGORIES[st.session_state.active_emoji_category]
         st.markdown(f"**{st.session_state.active_emoji_category}**")
         
@@ -832,9 +925,11 @@ with st.sidebar:
             col_idx = i % cols_per_row
             if emoji_cols[col_idx].button(emj, key=f"emoji_{i}_{emj}", use_container_width=True):
                 st.session_state.emoji_buffer.append(emj)
+                st.session_state.current_tab = "✍️ Compose Message"
+                st.session_state.auto_scroll_to = "message-input"
                 st.rerun()
         
-        # Selected emojis
+        # Selected emojis with auto-navigation
         if st.session_state.emoji_buffer:
             st.markdown("---")
             st.markdown("**Your selected emojis:**")
@@ -856,6 +951,7 @@ with st.sidebar:
                     st.session_state.form["message"] += " " + " ".join(st.session_state.emoji_buffer)
                 st.session_state.emoji_buffer = []
                 st.session_state.current_tab = "✍️ Compose Message"
+                st.session_state.auto_scroll_to = "message-input"
                 st.rerun()
             if col2.button("Clear Emojis", use_container_width=True, key="clear_emojis"):
                 st.session_state.emoji_buffer = []
@@ -879,7 +975,6 @@ with st.sidebar:
         else:
             st.success("✅ Admin Authenticated")
             
-            # Admin content here (simplified for brevity)
             messages = read_messages()
             total_messages = len(messages)
             
@@ -899,11 +994,24 @@ with st.sidebar:
                 st.session_state.admin_authenticated = False
                 st.rerun()
 
-# Main content area
+# Auto-scroll JavaScript injection
+if st.session_state.get('auto_scroll_to'):
+    scroll_target = st.session_state.auto_scroll_to
+    st.markdown(f"""
+    <script>
+    setTimeout(() => {{
+        scrollToElement('{scroll_target}', true);
+    }}, 800);
+    </script>
+    """, unsafe_allow_html=True)
+    # Reset the auto-scroll flag
+    st.session_state.auto_scroll_to = None
+
+# Main content area with proper IDs for scrolling
 if st.session_state.current_tab == "✍️ Compose Message":
     # Compose Message Section
     st.markdown(f"""
-    <div style="background: {COLORS['card_bg']}; padding: 2rem; border-radius: 16px; border: 1px solid {COLORS['border']};" class="mobile-padding">
+    <div style="background: {COLORS['card_bg']}; padding: 2rem; border-radius: 16px; border: 1px solid {COLORS['border']};" class="mobile-padding" id="compose-section">
         <h2 style="color: {COLORS['text_primary']}; margin-bottom: 1.5rem;">✨ Create Your Message</h2>
     """, unsafe_allow_html=True)
     
@@ -960,6 +1068,7 @@ if st.session_state.current_tab == "✍️ Compose Message":
                 st.success("🎉 Your message was sent successfully!")
                 st.balloons()
                 st.session_state.current_tab = "📜 View Messages"
+                st.session_state.auto_scroll_to = "messages-section"
                 st.rerun()
 
 else:
@@ -968,7 +1077,7 @@ else:
     
     if not messages:
         st.markdown(f"""
-        <div style="text-align: center; padding: 4rem 2rem; background: {COLORS['card_bg']}; border-radius: 16px; border: 1px solid {COLORS['border']};" class="mobile-padding">
+        <div style="text-align: center; padding: 4rem 2rem; background: {COLORS['card_bg']}; border-radius: 16px; border: 1px solid {COLORS['border']};" class="mobile-padding" id="messages-section">
             <h3 style="color: {COLORS['text_secondary']}; margin-bottom: 1rem;">📝 No Messages Yet</h3>
             <p style="color: {COLORS['text_secondary']}; font-size: 1.1rem;">Be the first to send some encouragement! 💫</p>
         </div>
@@ -987,7 +1096,7 @@ else:
         
         # Statistics
         st.markdown(f"""
-        <div style="background: {COLORS['card_bg']}; padding: 1rem; border-radius: 12px; margin: 1rem 0; border: 1px solid {COLORS['border']};">
+        <div style="background: {COLORS['card_bg']}; padding: 1rem; border-radius: 12px; margin: 1rem 0; border: 1px solid {COLORS['border']};" id="messages-section">
             <div style="display: flex; justify-content: space-around; text-align: center;" class="mobile-stack">
                 <div class="mobile-margin">
                     <div style="font-size: 0.9rem; color: {COLORS['text_secondary']};">Total Messages</div>
