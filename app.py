@@ -969,7 +969,7 @@ with tab_view:
 st.markdown("---")
 st.markdown(f"""
 <div style="text-align: center; color: {COLORS['text_secondary']}; padding: 2rem 0;">
-    <p>Made with ❤️ for spreading positivity during exams</p>
+    <p>Made with ❤️ for spreading positivity and best wishes during exams</p>
     <p style="font-size: 0.9rem;">📧 Messages: {len(read_messages())}</p>
 </div>
 """, unsafe_allow_html=True)
